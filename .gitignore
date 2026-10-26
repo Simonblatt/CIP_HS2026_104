@@ -1,0 +1,8 @@
+# virtual environment, caches, IDE
+.venv/
+__pycache__/
+.idea/
+
+# log of a scraping run (not needed in the repository)
+scrape_log.txt
+check_results.py
