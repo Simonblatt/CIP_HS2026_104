@@ -36,8 +36,8 @@ def route_canton_count(routes, extra_column = None):
     columns = [extra_column] if extra_column else []
 
     route_canton = pd.concat([
-        routes[["start_canton", "land"]].rename(columns={"start_canton": "canton"}),
-        routes[["end_canton", "land"]].rename(columns={"end_canton": "canton"}),
+        routes[["start_canton"] + columns].rename(columns={"start_canton": "canton"}),
+        routes[["end_canton"] + columns].rename(columns={"end_canton": "canton"}),
     ])
 
     # A route that starts and ends in the same canton counts only once for that canton
