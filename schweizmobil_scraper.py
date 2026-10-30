@@ -26,7 +26,7 @@ LANDS = {
 }
 DEFAULT_LANDS = ["wanderland", "veloland", "mountainbikeland", "skatingland", "kanuland"]
 
-# name of the route level in the output
+# name of the route level in the output, nationale routen are not scraped
 LEVELS = {"lokale-routen": "lokal", "regionale-routen": "regional", "nationale-routen": "national"}
 
 # Names of the difficulty ratings, in the order they appear on the page.
@@ -54,6 +54,13 @@ def normalize(u):
 def texts(locator):
     """All texts of a locator as a list (no waiting, never raises)."""
     return [locator.nth(i).inner_text().strip() for i in range(locator.count())]
+
+def first_text(page, selector):
+    """Text of first element or None."""
+    loc = page.locator(selector)
+    if loc.count() > 0:
+        return loc.first.inner_text().strip()
+    return None
 
 
 def pick(items, idx):
@@ -123,33 +130,6 @@ def parse_stages(body):
         if nr not in stages:
             stages[nr] = (m.group(2).strip(), num(m.group(3)))
     return [(nr, name, km) for nr, (name, km) in sorted(stages.items())]
-
-
-# --- canton: the route pictogram (number box with the crest) is an image whose FILE NAME contains the canton code,
-#     e.g. WL_101_GE_sentier_du_rhone.svg, WL_022_AR.svg, WL_GR_23_095.svg ---
-CANTONS = {"AG", "AI", "AR", "BE", "BL", "BS", "FR", "GE", "GL", "GR", "JU", "LU", "NE", "NW", "OW",
-           "SG", "SH", "SO", "SZ", "TG", "TI", "UR", "VD", "VS", "ZG", "ZH"}
-
-
-def canton_from_name(name):
-    """'WL_101_GE_sentier_du_rhone' -> 'GE'; several codes -> 'ZH, SH'; none (or unknown codes like RF) -> None."""
-    codes = [t for t in re.split(r"[_\s]+", name) if t in CANTONS]
-    return ", ".join(dict.fromkeys(codes)) or None
-
-
-def pictogram(page):
-    """File name (without extension) of the route pictogram and the canton code(s) in it."""
-    loc = page.locator("img[src*='/image-svg/']")
-    if not loc.count():
-        return None, None
-    src = loc.first.get_attribute("src") or ""
-    name = unquote(src.rsplit("/", 1)[-1]).rsplit(".", 1)[0]
-    return name, canton_from_name(name)
-
-
-def first_text(page, selector):
-    loc = page.locator(selector)
-    return loc.first.inner_text().strip() if loc.count() else None
 
 
 def split_start_end(s):
@@ -264,8 +244,6 @@ def scrape_route(page, url, land, level="lokal"):
     h2 = re.sub(r"^\s*Route:\s*", "", first_text(page, "h2") or "")
     start, via, end = split_start_end(h2)
 
-    pict_name, canton = pictogram(page)
-
     body = page.inner_text("body")
     stages = parse_stages(body)
     m = N_STAGES_RE.search(body)
@@ -283,8 +261,6 @@ def scrape_route(page, url, land, level="lokal"):
         "route_level": level,
         "url": url,
         "title": first_text(page, "h1"),
-        "canton": canton,
-        "pictogram": pict_name,
         "start": start,
         "via": via,
         "end": end,
@@ -320,31 +296,6 @@ def dump_page(page):
     for i, t in enumerate(texts(page.locator(DETAILS_SEL))):
         print(f"  details[{i}] = {t!r}")
 
-
-def dump_text(page, n=80):
-    """Print the first n non-empty lines of the visible page text (used by --inspect)."""
-    lines = [l.strip() for l in page.inner_text("body").splitlines() if l.strip()]
-    print(f"  --- page text: {len(lines)} lines, first {min(n, len(lines))} ---")
-    for i, l in enumerate(lines[:n]):
-        print(f"  {i:3d}: {l[:120]}")
-
-
-def dump_images(page):
-    """Print the images near the title (route pictogram with the canton crest) - used by --inspect."""
-    imgs = page.locator("img").evaluate_all(
-        """els => els.slice(0, 10).map(e => ({src: e.currentSrc || e.src, alt: e.alt, title: e.title,
-                                            w: e.naturalWidth, h: e.naturalHeight}))""")
-    print(f"  --- first {len(imgs)} <img> elements on the page ---")
-    for i, im in enumerate(imgs):
-        print(f"  img[{i}] {im}")
-    print("  svg elements:", page.locator("svg").count())
-    box = page.locator("h1").first.locator("xpath=ancestor::*[.//img or .//svg][1]")
-    if box.count():
-        html = box.evaluate("el => el.outerHTML")
-        print("  --- HTML around the title (first 1500 characters) ---")
-        print("  " + html[:1500].replace("\n", " "))
-
-
 def inspect_land(page, land):
     cfg = LANDS[land]
     selector = f'a[href^="/de/{cfg["slug"]}/route-"]'
@@ -370,8 +321,6 @@ def inspect_land(page, land):
             print(f"  overview card {i} images:", card_imgs)
         open_route(page, url)
         dump_page(page)
-        dump_images(page)
-        dump_text(page, n=40)
 
         # multi-stage pages: show the stage list and the links to the stages
         stages = page.get_by_text(re.compile(r"^\s*Etappe\s+\d")).all_inner_texts()
@@ -395,19 +344,15 @@ def inspect_land(page, land):
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
-FILE_ALL = "result_lokal_regional.csv"      # local + regional routes (all lands, incl. Kanuland)
-FILE_LOCAL = "result_lokal.csv"             # only the local routes (Kanuland has none)
+FILE_ALL = "result_lokal_regional.csv"
 
 
 def save_results(rows):
-    """One scraping run -> two files: everything, and the local routes only."""
+    """Saves all scraped routes into a single CSV file."""
     if not rows:
         return
     df = pd.DataFrame(rows)
     df.to_csv(FILE_ALL, index=False, encoding="utf-8-sig")
-    local = df[df["route_level"] == "lokal"]
-    if not local.empty:
-        local.to_csv(FILE_LOCAL, index=False, encoding="utf-8-sig")
 
 
 def load_existing():
