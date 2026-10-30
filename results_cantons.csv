@@ -1,0 +1,27 @@
+﻿canton,name,area_km2,mean_elevation_m,rq1_routes_below_1200m,rq1_density_per_100km2,rq2_leicht (Wanderweg),rq2_mittel (Bergwanderweg),rq3_veloland_routes,rq3_wanderland_routes,rq3_veloland_density_per_100km2,rq3_wanderland_density_per_100km2,rq3_veloland_ratio_to_swiss_average,rq3_wanderland_ratio_to_swiss_average,rq3_veloland_category,rq3_wanderland_category,rq3_diversity_evenness,rq3_diversity_category,rq3_diversity_routes_total
+ZH,Zürich,1728.94,533,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+BE,Bern / Berne,5938.89,1200,1,0.02,,,1,0,0.02,0.0,0.7,0.0,below average,no offer,-0.0,too few routes,1
+LU,Luzern,1493.52,770,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+UR,Uri,1076.53,1899,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+SZ,Schwyz,907.88,1096,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+OW,Obwalden,490.58,1337,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+NW,Nidwalden,275.84,1071,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+GL,Glarus,685.31,1579,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+ZG,Zug,238.73,664,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+FR,Fribourg / Freiburg,1672.43,855,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+SO,Solothurn,790.46,616,1,0.13,,,1,0,0.13,0.0,5.22,0.0,high,no offer,-0.0,too few routes,1
+BS,Basel-Stadt,36.95,294,1,2.71,,,1,0,2.71,0.0,111.75,0.0,high,no offer,-0.0,too few routes,1
+BL,Basel-Landschaft,517.67,517,2,0.39,,,2,0,0.39,0.0,15.95,0.0,high,no offer,-0.0,too few routes,2
+SH,Schaffhausen,298.42,537,0,0.0,0.0,100.0,0,1,0.0,0.34,0.0,19.77,no offer,high,-0.0,too few routes,1
+AR,Appenzell Ausserrhoden,242.84,929,1,0.41,100.0,0.0,0,1,0.0,0.41,0.0,24.29,no offer,high,-0.0,too few routes,1
+AI,Appenzell Innerrhoden,172.48,1128,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+SG,St. Gallen,2028.2,982,1,0.05,0.0,100.0,1,1,0.05,0.05,2.04,2.91,high,high,0.98,too few routes,2
+GR,Graubünden / Grigioni / Grischun,7105.3,2020,1,0.01,0.0,100.0,1,1,0.01,0.01,0.58,0.83,below average,average,0.98,too few routes,2
+AG,Aargau,1403.8,474,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+TG,Thurgau,994.33,495,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+TI,Ticino,2812.15,1391,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+VD,Vaud,3212.02,841,0,0.0,,,1,0,0.03,0.0,1.29,0.0,above average,no offer,-0.0,too few routes,1
+VS,Valais / Wallis,5224.64,2135,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
+NE,Neuchâtel,802.16,912,0,0.0,,,1,0,0.12,0.0,5.15,0.0,high,no offer,-0.0,too few routes,1
+GE,Genève,282.49,418,4,1.42,100.0,0.0,1,3,0.35,1.06,14.62,62.64,high,high,0.7,too few routes,4
+JU,Jura,858.13,690,0,0.0,,,0,0,0.0,0.0,0.0,0.0,no offer,no offer,,no offer,0
