@@ -1,0 +1,105 @@
+canton,land,routes,density_per_100km2,ratio_to_swiss_average,category
+ZH,mountainbikeland,0,0.0,0.0,no offer
+ZH,skatingland,2,0.12,3.41,high
+ZH,veloland,2,0.12,0.69,below average
+ZH,wanderland,5,0.29,0.43,below average
+BE,mountainbikeland,19,0.32,0.46,below average
+BE,skatingland,1,0.02,0.5,below average
+BE,veloland,15,0.25,1.51,above average
+BE,wanderland,35,0.59,0.87,average
+LU,mountainbikeland,1,0.07,0.1,below average
+LU,skatingland,0,0.0,0.0,no offer
+LU,veloland,2,0.13,0.8,average
+LU,wanderland,2,0.13,0.2,below average
+UR,mountainbikeland,19,1.76,2.55,high
+UR,skatingland,0,0.0,0.0,no offer
+UR,veloland,0,0.0,0.0,no offer
+UR,wanderland,6,0.56,0.82,average
+SZ,mountainbikeland,10,1.1,1.59,above average
+SZ,skatingland,0,0.0,0.0,no offer
+SZ,veloland,0,0.0,0.0,no offer
+SZ,wanderland,9,0.99,1.47,above average
+OW,mountainbikeland,5,1.02,1.47,above average
+OW,skatingland,0,0.0,0.0,no offer
+OW,veloland,3,0.61,3.66,high
+OW,wanderland,6,1.22,1.81,above average
+NW,mountainbikeland,6,2.18,3.14,high
+NW,skatingland,0,0.0,0.0,no offer
+NW,veloland,0,0.0,0.0,no offer
+NW,wanderland,10,3.63,5.37,high
+GL,mountainbikeland,5,0.73,1.05,average
+GL,skatingland,0,0.0,0.0,no offer
+GL,veloland,0,0.0,0.0,no offer
+GL,wanderland,11,1.61,2.38,high
+ZG,mountainbikeland,0,0.0,0.0,no offer
+ZG,skatingland,0,0.0,0.0,no offer
+ZG,veloland,0,0.0,0.0,no offer
+ZG,wanderland,0,0.0,0.0,no offer
+FR,mountainbikeland,0,0.0,0.0,no offer
+FR,skatingland,2,0.12,3.53,high
+FR,veloland,1,0.06,0.36,below average
+FR,wanderland,15,0.9,1.33,above average
+SO,mountainbikeland,2,0.25,0.37,below average
+SO,skatingland,2,0.25,7.46,high
+SO,veloland,3,0.38,2.27,high
+SO,wanderland,6,0.76,1.12,average
+BS,mountainbikeland,0,0.0,0.0,no offer
+BS,skatingland,1,2.71,79.82,high
+BS,veloland,1,2.71,16.2,high
+BS,wanderland,0,0.0,0.0,no offer
+BL,mountainbikeland,1,0.19,0.28,below average
+BL,skatingland,0,0.0,0.0,no offer
+BL,veloland,5,0.97,5.78,high
+BL,wanderland,4,0.77,1.14,average
+SH,mountainbikeland,0,0.0,0.0,no offer
+SH,skatingland,1,0.34,9.88,high
+SH,veloland,5,1.68,10.03,high
+SH,wanderland,5,1.68,2.48,high
+AR,mountainbikeland,0,0.0,0.0,no offer
+AR,skatingland,0,0.0,0.0,no offer
+AR,veloland,1,0.41,2.46,high
+AR,wanderland,5,2.06,3.05,high
+AI,mountainbikeland,1,0.58,0.84,average
+AI,skatingland,0,0.0,0.0,no offer
+AI,veloland,1,0.58,3.47,high
+AI,wanderland,2,1.16,1.72,above average
+SG,mountainbikeland,17,0.84,1.21,average
+SG,skatingland,2,0.1,2.91,high
+SG,veloland,3,0.15,0.89,average
+SG,wanderland,14,0.69,1.02,average
+GR,mountainbikeland,97,1.37,1.97,above average
+GR,skatingland,1,0.01,0.42,below average
+GR,veloland,3,0.04,0.25,below average
+GR,wanderland,50,0.7,1.04,average
+AG,mountainbikeland,1,0.07,0.1,below average
+AG,skatingland,0,0.0,0.0,no offer
+AG,veloland,1,0.07,0.43,below average
+AG,wanderland,0,0.0,0.0,no offer
+TG,mountainbikeland,0,0.0,0.0,no offer
+TG,skatingland,1,0.1,2.97,high
+TG,veloland,3,0.3,1.81,above average
+TG,wanderland,4,0.4,0.6,below average
+TI,mountainbikeland,25,0.89,1.28,above average
+TI,skatingland,0,0.0,0.0,no offer
+TI,veloland,1,0.04,0.21,below average
+TI,wanderland,16,0.57,0.84,average
+VD,mountainbikeland,14,0.44,0.63,below average
+VD,skatingland,0,0.0,0.0,no offer
+VD,veloland,9,0.28,1.68,above average
+VD,wanderland,25,0.78,1.15,average
+VS,mountainbikeland,44,0.84,1.22,average
+VS,skatingland,0,0.0,0.0,no offer
+VS,veloland,3,0.06,0.34,below average
+VS,wanderland,32,0.61,0.91,average
+NE,mountainbikeland,9,1.12,1.62,above average
+NE,skatingland,1,0.12,3.68,high
+NE,veloland,3,0.37,2.24,high
+NE,wanderland,4,0.5,0.74,below average
+GE,mountainbikeland,0,0.0,0.0,no offer
+GE,skatingland,0,0.0,0.0,no offer
+GE,veloland,3,1.06,6.36,high
+GE,wanderland,6,2.12,3.14,high
+JU,mountainbikeland,10,1.17,1.68,above average
+JU,skatingland,0,0.0,0.0,no offer
+JU,veloland,1,0.12,0.7,below average
+JU,wanderland,7,0.82,1.21,average
