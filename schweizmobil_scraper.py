@@ -1,14 +1,10 @@
 # Scrapes route information from schweizmobil.ch for several "Länder"
-# (Wanderland, Veloland, Mountainbikeland, Skatingland, optionally Kanuland).
-
-#   python schweizmobil_scraper.py --inspect                 # step 1: look at the page structure
-#   python schweizmobil_scraper.py                           # step 2: scrape the 4 land with local routes
-#   python schweizmobil_scraper.py --lands veloland --limit 5  # quick test run
-#   python schweizmobil_scraper.py --lands kanuland          # experimental (no local routes exist)
+# (Wanderland, Veloland, Mountainbikeland, Skatingland, Kanuland).
 
 import argparse
+import os
 import re
-from urllib.parse import urljoin, urlparse
+from urllib.parse import unquote, urljoin, urlparse
 
 import pandas as pd
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
@@ -20,17 +16,20 @@ BASE = "https://schweizmobil.ch"
 # ---------------------------------------------------------------------------
 # slug      = the part of the URL that names the land
 # overviews = the overview pages that list the routes (Kanuland has no local routes)
+# elevation = False: the pages of this land show no elevation data (Kanuland); default is True
 LANDS = {
-    "wanderland":       {"slug": "wanderland",       "overviews": ["lokale-routen"]},
-    "veloland":         {"slug": "veloland",         "overviews": ["lokale-routen"]},
-    "mountainbikeland": {"slug": "mountainbikeland", "overviews": ["lokale-routen"]},
-    "skatingland":      {"slug": "skatingland",      "overviews": ["lokale-routen"]},
-    "kanuland":         {"slug": "kanuland",         "overviews": ["regionale-routen", "nationale-routen"]},
+    "wanderland":       {"slug": "wanderland",       "overviews": ["lokale-routen", "regionale-routen"]},
+    "veloland":         {"slug": "veloland",         "overviews": ["lokale-routen", "regionale-routen"]},
+    "mountainbikeland": {"slug": "mountainbikeland", "overviews": ["lokale-routen", "regionale-routen"]},
+    "skatingland":      {"slug": "skatingland",      "overviews": ["lokale-routen", "regionale-routen"]},
+    "kanuland":         {"slug": "kanuland",         "overviews": ["regionale-routen"], "elevation": False},
 }
-DEFAULT_LANDS = ["wanderland", "veloland", "mountainbikeland", "skatingland"]
+DEFAULT_LANDS = ["wanderland", "veloland", "mountainbikeland", "skatingland", "kanuland"]
+
+# name of the route level in the output
+LEVELS = {"lokale-routen": "lokal", "regionale-routen": "regional", "nationale-routen": "national"}
 
 # Names of the difficulty ratings, in the order they appear on the page.
-
 RATING_NAMES = {
     "wanderland":       ["technical", "condition"],
     "veloland":         ["condition"],
@@ -44,7 +43,6 @@ DETAILS_SEL = "div.py-details-p"
 
 
 # ---------------------------------------------------------------------------
-
 # helpers
 # ---------------------------------------------------------------------------
 def normalize(u):
@@ -108,6 +106,47 @@ def parse_details(details):
     return out, ratings
 
 
+# --- multi-stage routes (regional / national): "Etappe 1/8" and a list "Etappe 1: A – B ... 13 km" ---
+N_STAGES_RE = re.compile(r"Etappe\s+\d+\s*/\s*(\d+)")
+KM_RE = re.compile(r"[\d'\u2019]+(?:[.,]\d+)?\s*km")
+STAGE_RE = re.compile(
+    r"Etappe\s+(\d+):\s*([^\n]+)\n(?:(?!Etappe\s+\d+:).){0,80}?([\d'\u2019]+(?:[.,]\d+)?)\s*km",
+    re.S,
+)
+
+
+def parse_stages(body):
+    """Return [(number, name, length_km), ...]; the first occurrence of each stage number wins."""
+    stages = {}
+    for m in STAGE_RE.finditer(body):
+        nr = int(m.group(1))
+        if nr not in stages:
+            stages[nr] = (m.group(2).strip(), num(m.group(3)))
+    return [(nr, name, km) for nr, (name, km) in sorted(stages.items())]
+
+
+# --- canton: the route pictogram (number box with the crest) is an image whose FILE NAME contains the canton code,
+#     e.g. WL_101_GE_sentier_du_rhone.svg, WL_022_AR.svg, WL_GR_23_095.svg ---
+CANTONS = {"AG", "AI", "AR", "BE", "BL", "BS", "FR", "GE", "GL", "GR", "JU", "LU", "NE", "NW", "OW",
+           "SG", "SH", "SO", "SZ", "TG", "TI", "UR", "VD", "VS", "ZG", "ZH"}
+
+
+def canton_from_name(name):
+    """'WL_101_GE_sentier_du_rhone' -> 'GE'; several codes -> 'ZH, SH'; none (or unknown codes like RF) -> None."""
+    codes = [t for t in re.split(r"[_\s]+", name) if t in CANTONS]
+    return ", ".join(dict.fromkeys(codes)) or None
+
+
+def pictogram(page):
+    """File name (without extension) of the route pictogram and the canton code(s) in it."""
+    loc = page.locator("img[src*='/image-svg/']")
+    if not loc.count():
+        return None, None
+    src = loc.first.get_attribute("src") or ""
+    name = unquote(src.rsplit("/", 1)[-1]).rsplit(".", 1)[0]
+    return name, canton_from_name(name)
+
+
 def first_text(page, selector):
     loc = page.locator(selector)
     return loc.first.inner_text().strip() if loc.count() else None
@@ -126,6 +165,23 @@ def split_start_end(s):
 # ---------------------------------------------------------------------------
 # 2) collect the links to all routes of one overview page (lazy loading / scrolling)
 # ---------------------------------------------------------------------------
+PAUSE_MS = 1000        # pause between two route pages
+SAVE_EVERY = 25        # save the result files after this many routes
+
+
+def goto_retry(page, url, wait_until="domcontentloaded", tries=3, timeout=60_000):
+    """page.goto with retries: a single slow page load must not stop a long run."""
+    for attempt in range(1, tries + 1):
+        try:
+            page.goto(url, wait_until=wait_until, timeout=timeout)
+            return
+        except Exception as e:
+            print(f"  could not load {url} (attempt {attempt}/{tries}): {type(e).__name__}")
+            if attempt == tries:
+                raise
+            page.wait_for_timeout(5000 * attempt)
+
+
 def collect_links(page, overview_url, link_selector):
     links = set()
 
@@ -134,7 +190,11 @@ def collect_links(page, overview_url, link_selector):
             "els => els.map(e => e.getAttribute('href'))")
         links.update(normalize(urljoin(overview_url, h)) for h in hrefs if h)
 
-    page.goto(overview_url, wait_until="networkidle")
+    goto_retry(page, overview_url)
+    try:
+        page.locator(link_selector).first.wait_for(timeout=30_000)
+    except PWTimeout:
+        pass                                     # no routes (or wrong URL): the loop below ends with an empty list
     # click away a cookie banner by hand if one appears (headless=False)
 
     failed_rounds = 0
@@ -146,13 +206,13 @@ def collect_links(page, overview_url, link_selector):
         if loc.count():
             loc.last.evaluate("el => el.scrollIntoView({block: 'start'})")
 
-        for _ in range(24):  # wait up to ~6 s for new entries
+        for _ in range(24):                      # wait up to ~6 s for new entries
             page.wait_for_timeout(250)
             collect()
             if len(links) > before:
                 break
 
-        if len(links) == before:  # wiggle to re-trigger the observer
+        if len(links) == before:                 # wiggle to re-trigger the observer
             page.mouse.move(700, 450)
             page.mouse.wheel(0, -600)
             page.wait_for_timeout(500)
@@ -170,11 +230,11 @@ def collect_links(page, overview_url, link_selector):
 # 3) scrape one route page
 # ---------------------------------------------------------------------------
 def open_route(page, url):
-    page.goto(url, wait_until="domcontentloaded")
-    page.locator("h1").first.wait_for(state="visible", timeout=15_000)
+    goto_retry(page, url)
+    page.locator("h1").first.wait_for(state="visible", timeout=30_000)
     toggle = page.get_by_text("Höhenprofil anzeigen")
     if toggle.count():
-        toggle.first.click()  # .first: pages with several stages have several buttons
+        toggle.first.click()                     # .first: pages with several stages have several buttons
         try:
             page.locator("element-route-profile").first.wait_for(state="visible", timeout=10_000)
         except PWTimeout:
@@ -185,33 +245,57 @@ def open_route(page, url):
         pass
 
 
-def scrape_route(page, url, land):
+def scrape_route(page, url, land, level="lokal"):
     open_route(page, url)
-    for _ in range(3):  # page may not be fully rendered yet -> re-read
+    has_elevation = LANDS[land].get("elevation", True)
+    for _ in range(3 if has_elevation else 1):   # page may not be fully rendered yet -> re-read
         facts = texts(page.locator(FACTS_SEL))
         details = texts(page.locator(DETAILS_SEL))
-        if pick(facts, 3) == "Höhenprofil":
+        if not has_elevation or pick(facts, 3) == "Höhenprofil":
             break
         page.wait_for_timeout(1000)
-    if pick(facts, 3) != "Höhenprofil":
-        print("  WARNING: unexpected page structure, check:", url)
+    structure_ok = has_elevation and pick(facts, 3) == "Höhenprofil"
+    if has_elevation and not structure_ok:
+        print("  WARNING: unexpected page structure, elevation values left empty:", url)
         print("    facts:  ", facts)
         print("    details:", details)
-    start, via, end = split_start_end(first_text(page, "h2"))
+
+    # multi-stage pages have a "Route: " prefix in the h2 that single-stage pages do not have
+    h2 = re.sub(r"^\s*Route:\s*", "", first_text(page, "h2") or "")
+    start, via, end = split_start_end(h2)
+
+    pict_name, canton = pictogram(page)
+
+    body = page.inner_text("body")
+    stages = parse_stages(body)
+    m = N_STAGES_RE.search(body)
+    n_stages = int(m.group(1)) if m else (len(stages) or 1)
+    if stages and n_stages != len(stages):
+        print(f"  WARNING: {n_stages} stages announced but {len(stages)} parsed: {url}")
+
+    # length of the whole route: first "<n> km" entry (facts[0] on all pages seen so far)
+    distance = next((num(t) for t in facts + details if KM_RE.fullmatch(t)), None)
 
     # facts[] has the same order in all lands: distance, ascent, descent, (label), max, min
+    # -> positions are only trusted if the structure check passed
     row = {
         "land": land,
+        "route_level": level,
         "url": url,
         "title": first_text(page, "h1"),
+        "canton": canton,
+        "pictogram": pict_name,
         "start": start,
         "via": via,
         "end": end,
-        "distance_km": num(pick(facts, 0)),
-        "el_gain_m": num(pick(facts, 1)),
-        "el_loss_m": num(pick(facts, 2)),
-        "el_max_m": num(pick(facts, 4)),
-        "el_min_m": num(pick(facts, 5)),
+        "distance_km": distance,
+        "n_etappen": n_stages,
+        "etappen_detail": " | ".join(
+            f"{nr}: {name}" + (f" ({km:g} km)" if km is not None else "") for nr, name, km in stages) or None,
+        "el_gain_m": num(pick(facts, 1)) if structure_ok else None,
+        "el_loss_m": num(pick(facts, 2)) if structure_ok else None,
+        "el_max_m": num(pick(facts, 4)) if structure_ok else None,
+        "el_min_m": num(pick(facts, 5)) if structure_ok else None,
     }
     fields, ratings = parse_details(details)
     row.update(fields)
@@ -226,40 +310,172 @@ def scrape_route(page, url, land):
 # ---------------------------------------------------------------------------
 # 4) --inspect: print the lists with their indices for the first route of each land
 # ---------------------------------------------------------------------------
-def inspect_land(page, land):
-    cfg = LANDS[land]
-    overview = f"{BASE}/de/{cfg['slug']}/{cfg['overviews'][0]}"
-    selector = f'a[href^="/de/{cfg["slug"]}/route-"]'
-    page.goto(overview, wait_until="networkidle")
-    page.wait_for_timeout(2000)
-    hrefs = page.locator(selector).evaluate_all("els => els.map(e => e.getAttribute('href'))")
-    print(f"\n===== {land}: {len(hrefs)} route links visible without scrolling =====")
-    if not hrefs:
-        print("No links found -> check the link selector:", selector)
-        return
-    url = normalize(urljoin(overview, hrefs[0]))
-    print("first route:", url)
-    open_route(page, url)
-    print("h1:", first_text(page, "h1"))
-    print("h2:", first_text(page, "h2"))
+def dump_page(page):
+    """Print what a route/stage page contains (used by --inspect)."""
+    print("  h1:", first_text(page, "h1"))
+    print("  h2:", first_text(page, "h2"))
+    print("  'Höhenprofil anzeigen' buttons:", page.get_by_text("Höhenprofil anzeigen").count())
     for i, t in enumerate(texts(page.locator(FACTS_SEL))):
         print(f"  facts[{i}]   = {t!r}")
     for i, t in enumerate(texts(page.locator(DETAILS_SEL))):
         print(f"  details[{i}] = {t!r}")
 
 
+def dump_text(page, n=80):
+    """Print the first n non-empty lines of the visible page text (used by --inspect)."""
+    lines = [l.strip() for l in page.inner_text("body").splitlines() if l.strip()]
+    print(f"  --- page text: {len(lines)} lines, first {min(n, len(lines))} ---")
+    for i, l in enumerate(lines[:n]):
+        print(f"  {i:3d}: {l[:120]}")
+
+
+def dump_images(page):
+    """Print the images near the title (route pictogram with the canton crest) - used by --inspect."""
+    imgs = page.locator("img").evaluate_all(
+        """els => els.slice(0, 10).map(e => ({src: e.currentSrc || e.src, alt: e.alt, title: e.title,
+                                            w: e.naturalWidth, h: e.naturalHeight}))""")
+    print(f"  --- first {len(imgs)} <img> elements on the page ---")
+    for i, im in enumerate(imgs):
+        print(f"  img[{i}] {im}")
+    print("  svg elements:", page.locator("svg").count())
+    box = page.locator("h1").first.locator("xpath=ancestor::*[.//img or .//svg][1]")
+    if box.count():
+        html = box.evaluate("el => el.outerHTML")
+        print("  --- HTML around the title (first 1500 characters) ---")
+        print("  " + html[:1500].replace("\n", " "))
+
+
+def inspect_land(page, land):
+    cfg = LANDS[land]
+    selector = f'a[href^="/de/{cfg["slug"]}/route-"]'
+    for ov in cfg["overviews"]:
+        overview = f"{BASE}/de/{cfg['slug']}/{ov}"
+        page.goto(overview, wait_until="networkidle")
+        page.wait_for_timeout(2000)
+        hrefs = page.locator(selector).evaluate_all("els => els.map(e => e.getAttribute('href'))")
+        print(f"\n===== {land} / {ov}: {len(hrefs)} route links visible without scrolling =====")
+        if not hrefs:
+            print("No links found -> check the link selector:", selector)
+            continue
+        print("all visible links:", sorted({normalize(urljoin(overview, h)) for h in hrefs if h}))
+        url = normalize(urljoin(overview, hrefs[0]))
+        print("first route:", url)
+        for i in range(min(3, len(hrefs))):          # what does the overview show for a route?
+            card = page.locator(selector).nth(i)
+            card_text = card.evaluate("el => (el.closest('li, article') || el.parentElement).innerText")
+            print(f"  overview card {i}:", card_text.replace("\n", " / ")[:300])
+            card_imgs = card.evaluate(
+                "el => [...(el.closest('li, article') || el.parentElement).querySelectorAll('img')]"
+                ".map(i => (i.currentSrc || i.src) + ' | alt=' + i.alt)")
+            print(f"  overview card {i} images:", card_imgs)
+        open_route(page, url)
+        dump_page(page)
+        dump_images(page)
+        dump_text(page, n=40)
+
+        # multi-stage pages: show the stage list and the links to the stages
+        stages = page.get_by_text(re.compile(r"^\s*Etappe\s+\d")).all_inner_texts()
+        if stages:
+            print("  stage texts:", [t.replace("\n", " / ") for t in stages[:20]])
+            site_links = page.locator(f'a[href^="/de/{cfg["slug"]}/"]').evaluate_all(
+                "els => els.map(e => e.getAttribute('href'))")
+            print("  links on this page:", sorted(set(h for h in site_links if h))[:40])
+            stage_link = page.get_by_role("link", name=re.compile("zur Etappe", re.I))
+            if stage_link.count():
+                href = stage_link.first.get_attribute("href")
+                stage_url = normalize(urljoin(url, href))
+                print("\n  --- first stage page:", stage_url)
+                try:
+                    open_route(page, stage_url)
+                    dump_page(page)
+                except Exception as e:
+                    print("  stage page could not be read:", type(e).__name__)
+
+
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
+FILE_ALL = "result_lokal_regional.csv"      # local + regional routes (all lands, incl. Kanuland)
+FILE_LOCAL = "result_lokal.csv"             # only the local routes (Kanuland has none)
+
+
+def save_results(rows):
+    """One scraping run -> two files: everything, and the local routes only."""
+    if not rows:
+        return
+    df = pd.DataFrame(rows)
+    df.to_csv(FILE_ALL, index=False, encoding="utf-8-sig")
+    local = df[df["route_level"] == "lokal"]
+    if not local.empty:
+        local.to_csv(FILE_LOCAL, index=False, encoding="utf-8-sig")
+
+
+def load_existing():
+    """--resume: the rows of an earlier (possibly interrupted) run."""
+    if not os.path.exists(FILE_ALL):
+        return []
+    return pd.read_csv(FILE_ALL).to_dict("records")
+
+
+def scrape_land(page, land, args, done, saved_rows):
+    """Scrape all routes of one land that are not in `done` yet. Returns (rows, urls that failed)."""
+    cfg = LANDS[land]
+    selector = f'a[href^="/de/{cfg["slug"]}/route-"]'
+    levels = {}                                  # url -> route level (from the overview it was found on)
+    for ov in cfg["overviews"]:
+        overview_url = f"{BASE}/de/{cfg['slug']}/{ov}"
+        print(f"[{land}] collecting links from {overview_url}")
+        found = collect_links(page, overview_url, selector)
+        if not found:
+            print("  no routes found here - check the URL in LANDS")
+        for u in (found[: args.limit] if args.limit else found):
+            levels.setdefault(u, LEVELS.get(ov, ov))
+    links = sorted(levels)
+    todo = [u for u in links if u not in done]
+    print(f"[{land}] {len(links)} unique routes, {len(links) - len(todo)} already scraped, {len(todo)} to do")
+
+    rows, failed = [], []
+    for i, url in enumerate(todo, 1):
+        try:
+            rows.append(scrape_route(page, url, land, levels[url]))
+        except Exception as e:
+            print("  failed:", url, str(e).splitlines()[0])
+            failed.append(url)
+        if i % SAVE_EVERY == 0:
+            save_results(saved_rows + rows)
+        page.wait_for_timeout(PAUSE_MS)
+
+    if failed:                                   # second pass for the routes that failed
+        print(f"[{land}] retrying {len(failed)} failed routes")
+        page.wait_for_timeout(5000)
+        for url in list(failed):
+            try:
+                rows.append(scrape_route(page, url, land, levels[url]))
+                failed.remove(url)
+            except Exception as e:
+                print("  failed again:", url, str(e).splitlines()[0])
+            page.wait_for_timeout(PAUSE_MS)
+
+    print(f"[{land}] {len(rows)} routes scraped")
+    return rows, failed
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--lands", nargs="+", default=DEFAULT_LANDS, choices=list(LANDS))
     ap.add_argument("--inspect", action="store_true", help="only print page structure, no scraping")
     ap.add_argument("--limit", type=int, default=None, help="max. routes per overview (for testing)")
     ap.add_argument("--show", action="store_true", help="show the browser window")
+    ap.add_argument("--resume", action="store_true",
+                    help="keep the rows already in the result file and scrape only the routes that are missing")
     args = ap.parse_args()
 
-    all_rows = []
+    all_rows = load_existing() if args.resume else []
+    done = {r["url"] for r in all_rows}
+    if args.resume:
+        print(f"resume: {len(all_rows)} routes already in {FILE_ALL}")
+    failed_lands, still_failed = [], []
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not args.show)
         page = browser.new_page(viewport={"width": 1400, "height": 900})
@@ -271,34 +487,25 @@ def main():
             return
 
         for land in args.lands:
-            cfg = LANDS[land]
-            selector = f'a[href^="/de/{cfg["slug"]}/route-"]'
-            links = []
-            for ov in cfg["overviews"]:
-                overview_url = f"{BASE}/de/{cfg['slug']}/{ov}"
-                print(f"[{land}] collecting links from {overview_url}")
-                found = collect_links(page, overview_url, selector)
-                links += found[: args.limit] if args.limit else found
-            links = sorted(set(links))
-            print(f"[{land}] {len(links)} unique routes")
-
-            rows = []
-            for url in links:
-                try:
-                    rows.append(scrape_route(page, url, land))
-                except Exception as e:
-                    print("  failed:", url, e)
-                page.wait_for_timeout(500)
-
-            if rows:
-                pd.DataFrame(rows).to_csv(f"result_{land}.csv", index=False,
-                                          encoding="utf-8-sig")  # save after each land
-                all_rows += rows
+            try:
+                rows, failed = scrape_land(page, land, args, done, all_rows)
+            except Exception as e:               # one broken land must not stop the others
+                print(f"[{land}] ABORTED: {type(e).__name__}: {str(e).splitlines()[0]}")
+                failed_lands.append(land)
+                continue
+            all_rows += rows
+            still_failed += failed
+            save_results(all_rows)               # also saved every few routes (crash protection)
         browser.close()
 
-    if all_rows:
-        pd.DataFrame(all_rows).to_csv("result_all.csv", index=False, encoding="utf-8-sig")
-        print("saved", len(all_rows), "routes")
+    print("saved", len(all_rows), "routes in", FILE_ALL)
+    if failed_lands:
+        print("lands that failed completely:", ", ".join(failed_lands))
+        print("-> run again:  python schweizmobil_scraper.py --resume --lands", " ".join(failed_lands))
+    if still_failed:
+        print(f"{len(still_failed)} routes could not be read (check them in the browser):")
+        for u in still_failed:
+            print("  ", u)
 
 
 if __name__ == "__main__":
