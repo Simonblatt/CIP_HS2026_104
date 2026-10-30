@@ -3,6 +3,14 @@
 Collects route information from [schweizmobil.ch](https://schweizmobil.ch) for five activity types
 (Wanderland, Veloland, Mountainbikeland, Skatingland, Kanuland).
 
+## Project Structure
+
+The project is modularized into separate Python files for better maintainability:
+- `config.py`: Configuration parameters, overview pages, selectors, and constants.
+- `parsers.py`: Pure helper and text-parsing functions (regex, string cleaning, stage parsing).
+- `scraper.py`: Playwright-based browser automation, link collection, and route scraping logic.
+- `main.py`: Entry point, command-line interface (CLI), run orchestration, and CSV output.
+
 ## Setup
 
 ```
@@ -13,13 +21,13 @@ playwright install chromium
 ## Usage
 
 ```
-python schweizmobil_scraper.py --inspect --lands wanderland   # print the page structure of one route (diagnosis)
-python schweizmobil_scraper.py --lands veloland --limit 3      # quick test run
-python schweizmobil_scraper.py                                 # all lands -> the two result files below
-python schweizmobil_scraper.py --resume                        # continue an interrupted run (see below)
+python main.py --inspect --lands wanderland   # print the page structure of one route (diagnosis)
+python main.py --lands veloland --limit 3      # quick test run
+python main.py                                 # all lands -> single result file below
+python main.py --resume                        # continue an interrupted run (see below)                       # continue an interrupted run (see below)
 ```
 
-Options: `--lands` (one or more lands), `--limit N` (max. routes per overview, for testing),
+Options:  `--lands` (one or more lands), `--limit N` (max. routes per overview, for testing),
 `--show` (show the browser window), `--inspect` (no scraping, only print the page structure),
 `--resume` (keep the rows already in the result file and scrape only the routes that are missing).
 
@@ -49,16 +57,15 @@ Data retrieved on: 30.10.2026. Source: schweizmobil.ch.
 
 ## How it works
 
-- One script for all lands. Differences between the lands (URL name, overview pages, elevation data
-  available or not) are set in the `LANDS` dictionary at the top of the file.
-- Values that differ between the lands are recognised by their **content** (e.g. "5 h 25 min" = duration,
-  "Asphaltiert: 7 km" = surface) and not by their position on the page.
-- Multi-stage routes (regional routes): the number of stages and a text with all stages are stored; the route
-  length is the value shown for the whole route, not the sum of the stages.
+* Modular design handling all lands. Differences between the lands (URL name, overview pages, elevation data
+available or not) are set in the `LANDS` dictionary in `config.py`.
+* Values that differ between the lands are recognised by their **content** (e.g. "5 h 25 min" = duration,
+"Asphaltiert: 7 km" = surface) and not by their position on the page.
+* Multi-stage routes (regional routes): the number of stages and a text with all stages are stored; the route
+length is the value shown for the whole route, not the sum of the stages.
 
 ## Known limitations
 -Regional routes: `duration_min` is empty (the page shows no total duration); the stage lengths in
   `etappen_detail` were not verified on all lands.
 - The ratings of Mountainbikeland and Skatingland are assumed to be in the order technical, condition.
 - Pages with an unexpected structure produce a warning and leave the elevation columns empty.
-
