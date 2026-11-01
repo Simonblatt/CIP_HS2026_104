@@ -9,34 +9,26 @@ import geopandas as gpd
 import plotly.express as px
 import plotly.graph_objects as go
 
-df_index = pd.read_csv("../rq3_result_combined_index.csv")
-df_dens = pd.read_csv("../rq3_result_density.csv")
 
-# Jonining data sets
-
-df_rq3 = df_index.merge(
-    df_dens,
-    on="canton",
-)
+df = pd.read_csv("../results_cantons.csv")
 
 # Defining the layers of the map
-
 layers = {
-    "Total": "combined_index",
-    "Hiking": "wanderland",
-    "Biking": "veloland",
-    "Mountainbiking": "mountainbikeland",
-    "Skating": "skatingland",
+    "Total": "rq3_diversity_category",
+    "Hiking": "rq3_wanderland_category",
+    "Biking": "rq3_veloland_category",
+    "Mountainbiking": "rq3_mountainbikeland_category",
+    "Skating": "rq3_skatingland_category",
 }
 
 # chosing the first layer to sho
 first_label, first_col = next(iter(layers.items()))
 
 # defining a function to sort individually for each graph
-def sorted_df_rq3(col):
-    return  df_rq3.sort_values(col, ascending=False)
+def sorted_df(col):
+    return  df.sort_values(col, ascending=False)
 
-d0 = sorted_df_rq3(first_col)
+d0 = sorted_df(first_col)
 
 # creating the figure
 
@@ -52,10 +44,10 @@ fig_rq3.update_yaxes(
 
 # button per layer
 
-def sorted_df_rq3(col):
-    return df_rq3.sort_values(col, ascending=False)  # largest first
+def sorted_df(col):
+    return df.sort_values(col, ascending=False)  # largest first
 
-d0 = sorted_df_rq3(first_col)
+d0 = sorted_df(first_col)
 
 fig_rq3 = px.bar(
     d0, x=first_col, y="canton", orientation="h", text_auto=first_label,
@@ -69,7 +61,7 @@ fig_rq3.update_yaxes(
 
 buttons = []
 for label, col in layers.items():
-    d = sorted_df_rq3(col)
+    d = sorted_df(col)
     buttons.append(dict(
         label=label,
         method="update",
@@ -87,4 +79,20 @@ fig_rq3.update_layout(
 )
 
 fig_rq3.show()
+
+
+
+# Idee Kategorisierung der Kanton
+# in verschiedene Kategorien statt
+# die Density.
+
+# Verschiedene Fragen, zu denen wir Hilfestellungen
+# geben wollen und mit welcher Karte wir sie
+# beantworten wollen.
+
+# Grosse Städte / Flughafen
+# Erschlossenheitsindex
+
+# Fragen beantworten. Wir müssen
+# nicht begründen wieso geändert.
 

@@ -5,14 +5,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from adjustText import adjust_text
 
-df = pd.read_csv("../rq2_result_difficulty_elevation.csv")
+df = pd.read_csv("../results_cantons.csv")
 
-plt.scatter(x = 'Z_AVG', y='mittel (Bergwanderweg)', data=df)
+plt.scatter(x = 'mean_elevation_m', y='rq2_mittel (Bergwanderweg)', data=df)
 
 # Annotating each dot
 texts = [
     plt.text(x, y, label, fontsize=8)
-    for x, y, label in zip(df['Z_AVG'], df['mittel (Bergwanderweg)'], df['canton'])
+    for x, y, label in zip(df['mean_elevation_m'], df['rq2_mittel (Bergwanderweg)'], df['canton'])
 ]
 # In case labels overlap
 adjust_text(

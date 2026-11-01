@@ -3,9 +3,9 @@ import pandas as pd
 import geopandas as gpd
 import plotly.express as px
 
-print(gpd.list_layers("swissBOUNDARIES3D_1_5_LV95_LN02.gpkg"))
+print(gpd.list_layers("../swissBOUNDARIES3D_1_5_LV95_LN02.gpkg"))
 
-cantons = gpd.read_file("swissBOUNDARIES3D_1_5_LV95_LN02.gpkg", layer="tlm_kantonsgebiet")
+cantons = gpd.read_file("../swissBOUNDARIES3D_1_5_LV95_LN02.gpkg", layer="tlm_kantonsgebiet")
 print(cantons.columns)
 print(cantons.crs)   # Swiss data is usually EPSG:2056 (LV95)
 
