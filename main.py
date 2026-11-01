@@ -89,6 +89,7 @@ def run_analysis(all_rows):
 
     # All activities together in one table
     routes = pd.concat(tables, ignore_index=True)
+    routes.to_csv("routes_cantons.csv", index=False, encoding="utf-8-sig")
     # BFS key figures of the cantons (area, mean elevation), used by all research questions
     canton_figures = load_canton_figures()
 
@@ -167,3 +168,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
