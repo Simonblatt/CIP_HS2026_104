@@ -32,8 +32,14 @@ def load_canton_figures(file="Geographische_Kennzahlen.xlsx"):
 # A route that starts and ends in the same canton counts only once for that canton.
 # Routes abroad are not counted.
 # extra_column: optional column to keep, e.g. "technical" (RQ2) or "land" (RQ3).
-def route_canton_count(routes, extra_column = None):
-    columns = [extra_column] if extra_column else []
+def route_canton_count(routes, extra_columns=None):
+    # Accept None, a single column name, or a list of names
+    if extra_columns is None:
+        columns = []
+    elif isinstance(extra_columns, str):
+        columns = [extra_columns]
+    else:
+        columns = list(extra_columns)
 
     route_canton = pd.concat([
         routes[["start_canton"] + columns].rename(columns={"start_canton": "canton"}),

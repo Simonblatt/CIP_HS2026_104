@@ -17,8 +17,8 @@ def run_rq2(routes, canton_figures):
 
     # Number of routes per canton and difficulty level
     # crosstab counts the routes for each combination of canton and difficulty level.
-    technical_count = pd.crosstab(route_canton["canton"], route_canton["condition"])
-    condition_count = pd.crosstab(route_canton["canton"], route_canton["condition"])
+    technical_count = pd.crosstab(route_canton["canton"], route_canton["technical"]).add_prefix("technical_")
+    condition_count = pd.crosstab(route_canton["canton"], route_canton["condition"]).add_prefix("condition_")
 
     # Percentage of each difficulty level per canton
     # crosstab counts the routes for each combination of canton and difficulty level;
