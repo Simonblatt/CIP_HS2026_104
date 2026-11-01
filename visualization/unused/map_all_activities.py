@@ -5,31 +5,28 @@ import geopandas as gpd
 import plotly.express as px
 import plotly.graph_objects as go
 
-print(gpd.list_layers("swissBOUNDARIES3D_1_5_LV95_LN02.gpkg"))
+print(gpd.list_layers("../swissBOUNDARIES3D_1_5_LV95_LN02.gpkg"))
 
-cantons = gpd.read_file("swissBOUNDARIES3D_1_5_LV95_LN02.gpkg", layer="tlm_kantonsgebiet")
+cantons = gpd.read_file("../swissBOUNDARIES3D_1_5_LV95_LN02.gpkg", layer="tlm_kantonsgebiet")
 print(cantons.columns)
 print(cantons.crs)   # Swiss data is usually EPSG:2056 (LV95)
 
-df = pd.read_csv("random_data.csv")
+df = pd.read_csv("data_combined.csv")
 
 # Jonining data sets
 
 gdf = cantons.merge(
     df,
-    left_on="kantonsnummer",   # column in the swissBOUNDARIES data
-    right_on="KTNR",     # column in  df
-    how="left",
+    on="kantonsnummer",   # column in the swissBOUNDARIES data
 )
-
-gdf = gdf.drop(columns="KTNR")
 
 gdf_wgs = gdf.to_crs(epsg=4326)
 
 # Defining the layers of the map
 
 layers = {
-    "hiking_1200": "dens_h_1200",
+    "hiking_1200": "density_per_100km2",
+    "hiking_total": ""
     "biking": "dens_velo",
     "mountain_biking": "dens_mb",
     "skating": "dens_sk",
