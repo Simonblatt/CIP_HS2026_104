@@ -5,20 +5,16 @@
 import pandas as pd
 import geopandas as gpd
 import plotly.express as px
+from utils import canton_abbreviations
 
-print(gpd.list_layers("swissBOUNDARIES3D_1_5_LV95_LN02.gpkg"))
+print(gpd.list_layers("../swissBOUNDARIES3D_1_5_LV95_LN02.gpkg"))
 
-cantons = gpd.read_file("swissBOUNDARIES3D_1_5_LV95_LN02.gpkg", layer="tlm_kantonsgebiet")
+cantons = gpd.read_file("../swissBOUNDARIES3D_1_5_LV95_LN02.gpkg", layer="tlm_kantonsgebiet")
 print(cantons.columns)
 print(cantons.crs)   # Swiss data is usually EPSG:2056 (LV95)
 
-df = pd.read_csv("../rq1_result_density_below_1200m.csv")
+df = pd.read_csv("../../results_cantons.csv")
 
-canton_abbreviations = {
-    1: "ZH", 2: "BE", 3: "LU", 4: "UR", 5: "SZ", 6: "OW", 7: "NW", 8: "GL", 9: "ZG",
-    10: "FR", 11: "SO", 12: "BS", 13: "BL", 14: "SH", 15: "AR", 16: "AI", 17: "SG",
-    18: "GR", 19: "AG", 20: "TG", 21: "TI", 22: "VD", 23: "VS", 24: "NE", 25: "GE", 26: "JU"
-}
 canton_numbers = {abbr: num for num, abbr in canton_abbreviations.items()}
 
 df.insert(
@@ -27,7 +23,9 @@ df.insert(
     df["canton"].map(canton_numbers),
 )
 
-# Jonining data sets
+df.drop(columns=["name"], inplace=True)
+
+# Jonining with map data
 
 gdf = cantons.merge(
     df,
@@ -35,8 +33,7 @@ gdf = cantons.merge(
 )
 
 
-
-# density of routes below 1200m
+# density of routes above 1200m
 
 gdf_wgs = gdf.to_crs(epsg=4326)
 
@@ -44,8 +41,8 @@ fig_map1 = px.choropleth(
     gdf_wgs,
     geojson=gdf_wgs.geometry.__geo_interface__,
     locations=gdf_wgs.index,
-    color="density_per_100km2",
-    hover_name="KTNAME",
+    color="rq1_density_per_100km2",
+    hover_name="name",
     color_continuous_scale="YlGn",
 )
 fig_map1.update_geos(fitbounds="locations", visible=False, projection_type="mercator")

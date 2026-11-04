@@ -10,7 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-df = pd.read_csv("../results_cantons.csv")
+df = pd.read_csv("../../results_cantons.csv")
 
 # Defining the layers of the map
 layers = {
@@ -30,7 +30,7 @@ def sorted_df(col):
 
 d0 = sorted_df(first_col)
 
-# creating the figure
+# --- creating the figure ---
 
 fig_rq3 = px.bar(d0, y='canton', x=first_col, orientation='h', text_auto='.2s',
             title="Density per Activity")
@@ -42,7 +42,7 @@ fig_rq3.update_yaxes(
 )
 
 
-# button per layer
+# --- button per layer ---
 
 def sorted_df(col):
     return df.sort_values(col, ascending=False)  # largest first
@@ -79,20 +79,4 @@ fig_rq3.update_layout(
 )
 
 fig_rq3.show()
-
-
-
-# Idee Kategorisierung der Kanton
-# in verschiedene Kategorien statt
-# die Density.
-
-# Verschiedene Fragen, zu denen wir Hilfestellungen
-# geben wollen und mit welcher Karte wir sie
-# beantworten wollen.
-
-# Grosse Städte / Flughafen
-# Erschlossenheitsindex
-
-# Fragen beantworten. Wir müssen
-# nicht begründen wieso geändert.
 
