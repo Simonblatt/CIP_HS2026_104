@@ -34,6 +34,7 @@ Each research question has specific requirements for data processing.
 - `rq1.py`: filtering routes below 1200 m above sea level, calculating route density
 - `rq2.py`: counting the number of routes per difficulty level
 - `rp3.py`: calculating the route density per activity, calculating evenness across activities, creating categories
+- `utils.py`: running help functions that are used in `rq1.py`, `rq2.py` and `rq3.py` (i.e. defining counting rule for the routes, assigning canton abbreviations and geodata) 
 These processes generate individual csv files containing only the relevant information for each research question (indicated by the prefix of the respective research question). 
 
 ### Visualizations
