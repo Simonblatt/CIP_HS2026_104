@@ -165,4 +165,4 @@ for i, (label, cfg) in enumerate(layers.items()):
     fig_static.write_image(f"plots/rq3_map_{label.lower()}.png",
                            width=900, height=650, scale=3)
 
-fig_map.write_html("docs/rq3_map_interactive.html", include_plotlyjs="cdn")
+fig_map.write_html("plots/rq3_map_interactive.html", include_plotlyjs="cdn")
