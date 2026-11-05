@@ -8,7 +8,7 @@ import utils
 # --- Settings ---
 CSV_PATH = "../results_cantons.csv"                       # adjust path
 GPKG_PATH = "swissBOUNDARIES3D_1_5_LV95_LN02.gpkg"        # adjust path
-OUTPUT_PATH = "plots/map_hiking_absolute.png"
+OUTPUT_PATH = "plots/rq1_map_hiking_absolute.png"
 SHOW_CITIES = True
 
 
