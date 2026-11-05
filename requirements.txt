@@ -1,4 +1,5 @@
 # packages used in this project
+# pip install -r requirements.txt
 pandas
 geopandas
 pathlib
