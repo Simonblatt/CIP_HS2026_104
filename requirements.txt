@@ -7,7 +7,7 @@ matplotlib
 adjustText
 pathlib
 numpy
-shapely.geometry
+shapely
 argparse
 os
 playwright
