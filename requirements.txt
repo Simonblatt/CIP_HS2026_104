@@ -1,0 +1,14 @@
+# packages used in this project
+pandas
+geopandas
+pathlib
+matplotlib
+adjustText
+pathlib
+numpy
+shapely.geometry
+argparse
+os
+playwright
+re
+urllib.parse

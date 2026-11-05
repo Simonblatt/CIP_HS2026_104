@@ -57,15 +57,24 @@ Data retrieved on: 30.10.2026. Source: schweizmobil.ch.
 
 ## How it works
 
-* Modular design handling all lands. Differences between the lands (URL name, overview pages, elevation data
+- Modular design handling all lands. Differences between the lands (URL name, overview pages, elevation data
 available or not) are set in the `LANDS` dictionary in `config.py`.
-* Values that differ between the lands are recognised by their **content** (e.g. "5 h 25 min" = duration,
+- Values that differ between the lands are recognised by their **content** (e.g. "5 h 25 min" = duration,
 "Asphaltiert: 7 km" = surface) and not by their position on the page.
-* Multi-stage routes (regional routes): the number of stages and a text with all stages are stored; the route
+- Multi-stage routes (regional routes): the number of stages and a text with all stages are stored; the route
 length is the value shown for the whole route, not the sum of the stages.
 
 ## Known limitations
--Regional routes: `duration_min` is empty (the page shows no total duration); the stage lengths in
+- Regional routes: `duration_min` is empty (the page shows no total duration); the stage lengths in
   `etappen_detail` were not verified on all lands.
 - The ratings of Mountainbikeland and Skatingland are assumed to be in the order technical, condition.
 - Pages with an unexpected structure produce a warning and leave the elevation columns empty.
+
+## Contributions
+- Simon Blatter: 
+  - 
+- Julia Keller: 
+  - 
+- Manuela Liem: 
+  - Base structure of scraper using playwright
+  - Visualizations
