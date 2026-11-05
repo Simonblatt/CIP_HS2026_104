@@ -14,7 +14,7 @@ diversity_colors = ["#898989", "#DE6B72", "#F4A582", "#5E9FCB"]
 
 # --- Layers: label -> category column ---
 layers = {
-    "Total": dict(
+    "All Activities": dict(
         col="rq3_diversity_category",
         order=diversity_order,
         colors=diversity_colors,
@@ -162,5 +162,7 @@ for i, (label, cfg) in enumerate(layers.items()):
         fig_static.data[j].visible = (j == i)
     fig_static.update_layout(title=cfg["map_title"])
     fig_static.layout.updatemenus = []
-    fig_static.write_image(f"plots/map_{label.lower()}.png",
+    fig_static.write_image(f"plots/rq3_map_{label.lower()}.png",
                            width=900, height=650, scale=3)
+
+fig_map.write_html(f"plots/rq3_map_interactive.html",)
